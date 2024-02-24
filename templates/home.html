@@ -1,0 +1,185 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+
+<div class="container">
+
+    {% for msg in get_flashed_messages()  %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        {{msg}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </button>
+    </div>
+    {% endfor %}
+
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1 class="title">Timeline</h1> 
+            <form action="/home" method="post">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text grey" id="basic-addon3">Marked as "Completed" in</span>
+                    </div>
+                    <input value="{{ request.form['completed'] }}" type="number" min="1900" max="2099" step="1" placeholder="Year" class="form-control" id="basic-url" aria-describedby="basic-addon3" name="completed">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text grey" id="basic-addon3">Marked as "Unfinished" in</span>
+                    </div>
+                    <input value="{{ request.form['unfinished'] }}" type="number" min="1900" max="2099" step="1" placeholder="Year" class="form-control" id="basic-url" aria-describedby="basic-addon3" name="unfinished">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text grey" id="basic-addon3">Marked as "To Be Read" in</span>
+                    </div>
+                    <input value="{{ request.form['tbr'] }}" type="number" min="1900" max="2099" step="1" placeholder="Year" class="form-control" id="basic-url" aria-describedby="basic-addon3" name="tbr">
+                </div>
+                <input class="btn btn-secondary grey right" type="submit" id="timeline" name="timeline" Placeholder="submit">
+            </form>
+            <hr>
+            <div class="container text-center">
+                <div class="row align-items-start">
+                    <div class="col">
+                        <p>
+                            <button class="btn shadow-lg p-3 mb-5 hidden-info" type="button" data-bs-toggle="collapse" data-bs-target="#completed" aria-expanded="false" aria-controls="collapseExample">
+                            Completed
+                            </button>
+                        </p>
+                        <div class="collapse" id="completed">
+                            {% if completed is defined and completed|length > 0 %}
+                                <div class="card card-body">
+                                    <section class="py-5">
+                                        <ul class="timeline">
+                                            {% for book in completed %}
+                                                <li class="timeline-item mb-5">
+                                                    <h5 class="fw-bold">{{book.book}}</h5>
+                                                    <p class="text-muted mb-2 fw-bold">{{book.date}}</p>
+                                                    <p class="text-muted">{{book.notes}}</p>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </section>     
+                                </div>
+                            {% else %}
+                                <h4 class="grey-text">No books marked Completed during this year</h4>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col">
+                        <p>
+                            <button class= "btn shadow-lg p-3 mb-5 hidden-info" type="button" data-bs-toggle="collapse" data-bs-target="#unfinished" aria-expanded="false" aria-controls="collapseExample">
+                            Unfinished
+                            </button>
+                        </p>
+                        <div class="collapse" id="unfinished">
+                            {% if unfinished is defined and unfinished|length > 0 %}
+                                <div class="card card-body">
+                                    <section class="py-5">
+                                        <ul class="timeline">
+                                            {% for book in unfinished %}
+                                                <li class="timeline-item mb-5">
+                                                    <h5 class="fw-bold">{{book.book}}</h5>
+                                                    <p class="text-muted mb-2 fw-bold">{{book.date}}</p>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </section>     
+                                </div>
+                            {% else %}
+                                <h4 class="grey-text">No books marked Unfinished during this year</h4>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col">
+                        <p>
+                            <button class="btn shadow-lg p-3 mb-5 hidden-info" type="button" data-bs-toggle="collapse" data-bs-target="#tbr" aria-expanded="false" aria-controls="collapseExample">
+                            To Be Read
+                            </button>
+                        </p>
+                        <div class="collapse" id="tbr">
+                            {% if tbr is defined and tbr|length > 0 %}
+                                <div class="card card-body">
+                                    <section class="py-5">
+                                        <ul class="timeline">
+                                            {% for book in tbr %}
+                                                <li class="timeline-item mb-5">
+                                                    <h5 class="fw-bold">{{book.book}}</h5>
+                                                    <p class="text-muted mb-2 fw-bold">{{book.date}}</p>
+                                                    <p class="text-muted">{{book.notes}}</p>
+                                                    <p class="text-muted">{{book.reread}}</p>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </section>     
+                                </div>
+                            {% else %}
+                                <h4 class="grey-text">No books marked To Be Read during this year</h4>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <h1 class="title">Recents</h1>
+            <form action="/home" method ="post">
+                <div class="center">
+                    <select class="custom-select" id="inputGroupSelect04" name="duration">
+                    <option>Choose books added... </option>
+                    {% if option == "day" %}
+                        <option value="day" selected>Today</option>
+                    {% else %}
+                        <option value="day">Today</option>
+                    {% endif %}
+                    {% if option == "week" %}
+                        <option value="week" selected>This Week</option>
+                    {% else %}
+                        <option value="week">This Week</option>
+                    {% endif %}
+                    {% if option == "month" %} 
+                        <option value="month" selected>This Month</option>
+                    {% else %}
+                        <option value="month">This Month</option>
+                    {% endif %}
+                    
+                    </select>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary grey" type="submit" id="recents">Check</button>
+                    </div>
+                </div>
+            </form>
+            <br>
+            <!-- Timeline HTML found on https://mdbootstrap.com/docs/standard/extended/timeline/ -->
+            <section class="py-5 center">
+                <ul class="timeline">
+                    {% if day is defined and day|length > 0 %}{% set recents = day %}
+                    {% elif week is defined and week|length > 0 %}{% set recents = week %}
+                    {% elif month is defined and month|length > 0 %}{% set recents = month %}
+                    {% endif %}
+                    {% for book in recents%}
+                        <li class="timeline-item mb-5">
+                            <h5 class="fw-bold">{{book.book}}</h5>
+                            <p class="text-muted mb-2 fw-bold">{{book.page | upper}}</p>
+                            <p class="text-muted mb-2 fw-bold">{{book.date}}</p>
+                            <p class="text-muted">
+                                {% if book.notes %}{{ book.notes }}
+                                {% endif %}
+                                {% if book.type %}{{ book.type }} 
+                                {% endif %}
+                                {% if book.reread %}{{ book.reread }} 
+                                {% endif %}
+                            </p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>  
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% set ticked = "Completed" %}
+{% set crossed = "To Be Read" %}
+{% set title = "Unfinished" %}
+{% set page = "/unfinished" %}
+
+
+{% extends "books.html" %}
+
+
+{% block set %}
+    
+{% endblock %}
+
+{% block checked  %}
+<form action="/unfinished" method="post">
+    <input hidden name="change" value="tick"/>
+    <input hidden name="book" value={{book.id}}/>
+    <button type = "submit" class="white border-0 check">
+        ✅  
+    </button>
+</form>
+{% endblock %}
+
+{% block crossed %}
+<form action="/unfinished" method="post">
+    <input hidden name="change" value="cross"/>
+    <input hidden name="book" value={{book.id}}/>
+    <button type = "submit" class="white border-0 check">
+        ❎ 
+    </button>
+</form>
+{% endblock %}

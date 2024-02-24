@@ -1,0 +1,15 @@
+{% set ticked = "Reread" %}
+{% set page = "/completed" %}
+
+{% set title = "Completed" %}
+
+{% extends "books.html" %}
+
+{% block checked  %}
+<form action="/completed" method="post">  
+    <button class="border-0 white" type="submit" name="book" value={{book.id}}>
+        <img  src="../static/reread.png" alt="Plus 1" height="30" width="30">
+    </button>
+</form>
+{% endblock %}
+

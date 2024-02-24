@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Add Books
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    
+</form>
+    {% for msg in get_flashed_messages()  %}
+    {% if msg == 'Add Book Success!' %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <h6>{{msg}}</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </button>
+        </div>
+    {% else %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <h6>{{msg}}</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </button>
+        </div>
+    {% endif %}
+    {% endfor %}
+
+</div>
+<form action="/add" method="post" class="middle mt-5">
+    <h3 class="mb-3"><u>Mandatory Fields</u></h3>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="inputGroup-sizing-default">Name of Book</span>
+        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="book" placeholder="Name of Book"/>
+    </div>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="inputGroup-sizing-default">Destination</span>
+        <select name="destination" class="form-select" aria-label="Default select example">
+            <option selected>Select page</option>
+            <option value="completed">Completed</option>
+            <option value="unfinished">Unfinished</option>
+            <option value="tbr">To Be Read</option>
+          </select>
+    </div>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="inputGroup-sizing-default">Status of Book</span>
+        <input name="status" class="form-control" list="datalistOptions" id="exampleDataList" placeholder="Type to search...">
+        <datalist id="datalistOptions">
+            <option value="Finished">
+            <option value="Left Extras">
+            <option value="Finishing Soon">
+            <option value="Uncompleted">
+        </datalist>
+    </div>
+    <h3 class="mb-3"><u>Optional Fields</u></h3>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="inputGroup-sizing-default" >Genre</span>
+        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="genres" placeholder='Input a list of comma separated genres'/>
+    </div>
+    <div class="input-group mb-3">
+        <span class="input-group-text">Notes </span>
+        <textarea class="form-control" aria-label="With textarea" name="notes" placeholder="Reasons for reading, anticipation level, prominent plot points, possible deterrences, etc..."></textarea>
+    </div>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="inputGroup-sizing-default" >Series Name</span>
+        <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default" name="series" placeholder='Fill in if book added is part of a series'/>
+    </div>
+    <button class="btn grey right" type="submit">Add Book</button>
+</form>    
+
+{% endblock %}
