@@ -32,6 +32,8 @@ export FLASK_APP=app.py
 export FLASK_DEBUG=1
 flask run
 ```
+# How to use?
+- Watch CS50.mov
 
 
 
