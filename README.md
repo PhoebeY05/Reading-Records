@@ -21,6 +21,9 @@ Web app made in Flask that acts as a book list for avid bookworms who read unpub
 - Prompt for reviews when switched to "Completed"
 - Estimated time of completion for book (data analytics)
 - Show periods of times where some genres are preferred (clustering)
+- Tags that can be used as reusable notes (e.g. #nice) or standard genres (e.g. #fiction)
+- Symbol to represent anticipated book (e.g. ✔️)
+
 
 # How to visit?
 1. Clone repository/Download zip file <img width="1331" alt="image" src="https://github.com/PhoebeY05/Reading-Records/assets/115935747/a178ac76-cd85-4656-8136-4f8789c741f4">
