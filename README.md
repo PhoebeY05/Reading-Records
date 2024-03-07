@@ -36,7 +36,7 @@ export FLASK_DEBUG=1
 flask run
 ```
 # How to use?
-- Watch CS50.mov
+- Watch CS50.mp4
 
 
 
