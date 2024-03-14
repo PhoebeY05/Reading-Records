@@ -1,5 +1,7 @@
 # Description
-Web app made in Flask that acts as a book list for avid bookworms who read unpublished books
+- Web app made in Flask
+- Book list for unpublished books 
+   - e.g. Wattpad, 晋江文学城
 ## Features:
 1. Login functionality allows user's book list and tastes to remain privacy 
 2. Status with standard options like Finishing, Finishing Soon, Left Extras, Uncompleted & customisable option to type anything user prefers
@@ -23,7 +25,7 @@ Web app made in Flask that acts as a book list for avid bookworms who read unpub
 - Show periods of times where some genres are preferred (clustering)
 - Tags that can be used as reusable notes (e.g. #nice) or standard genres (e.g. #fiction)
 - Symbol to represent anticipated book (e.g. ✔️)
-
+- Number to represent series (for unnamed book series)
 
 # How to visit?
 ## localhost
