@@ -26,6 +26,7 @@ Web app made in Flask that acts as a book list for avid bookworms who read unpub
 
 
 # How to visit?
+## localhost
 1. Clone repository/Download zip file <img width="1331" alt="image" src="https://github.com/PhoebeY05/Reading-Records/assets/115935747/a178ac76-cd85-4656-8136-4f8789c741f4">
 2. Open folder in VS Code
 3. Run the below commands in VS Code's terminal
@@ -35,6 +36,10 @@ export FLASK_APP=app.py
 export FLASK_DEBUG=1
 flask run
 ```
+## Online
+1. Go to https://phoebe05.pythonanywhere.com/
+
+**_Disclaimer: Cannot choose password if on Safari_**
 # How to use?
 - Watch CS50.mp4
 
