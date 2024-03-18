@@ -26,6 +26,7 @@
 - Tags that can be used as reusable notes (e.g. #nice) or standard genres (e.g. #fiction)
 - Symbol to represent anticipated book (e.g. ✔️)
 - Number to represent series (for unnamed book series)
+- Edit book name & other fields by clicking on them in the list view (respective pages)
 
 # How to visit?
 ## localhost
