@@ -1,7 +1,14 @@
-# Description
-- Web app made in Flask
+# Reading Records 
+## Description
 - Book list for unpublished books 
    - e.g. Wattpad, 晋江文学城
+
+## Technologies Used:
+1. Flask
+2. Jinja
+3. HTML, CSS, JavaScript
+4. Bootstrap
+5. SQLite3
 ## Features:
 1. Login functionality allows user's book list and tastes to remain privacy 
 2. Status with standard options like Finishing, Finishing Soon, Left Extras, Uncompleted & customisable option to type anything user prefers
