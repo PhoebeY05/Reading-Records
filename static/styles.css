@@ -2608,6 +2608,37 @@ body.site-mode-shows .search-card .search-status.series-book-category-unfinished
 body.site-mode-shows .predict-next-status input[type="checkbox"] {
     accent-color: #0b5ea8;
 }
+.predict-next-norepeat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+    align-items: center;
+    font-size: 0.88rem;
+}
+.predict-next-reset {
+    background: none;
+    border: 1px solid #ead9d1;
+    color: #6B0F1A;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    line-height: 1.2;
+}
+.predict-next-reset:hover {
+    background: #fff;
+    border-color: #6B0F1A;
+}
+body.site-mode-shows .predict-next-reset {
+    border-color: #c9def5;
+    color: #0b5ea8;
+}
+body.site-mode-shows .predict-next-reset:hover {
+    border-color: #0b5ea8;
+}
+.predict-next-seen-count {
+    font-size: 0.82rem;
+}
 
 .predict-result-card {
     margin-bottom: 1.25rem;

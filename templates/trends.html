@@ -38,6 +38,14 @@
                 {% endfor %}
             </fieldset>
             {% endif %}
+            <div class="predict-next-norepeat mt-2">
+                <label class="predict-next-category">
+                    <input type="checkbox" id="predictNextNoRepeat" checked>
+                    Don't repeat previous predictions
+                </label>
+                <button type="button" id="predictNextResetSeen" class="predict-next-reset" title="Forget the list of predictions I've already seen">Reset</button>
+                <span id="predictNextSeenCount" class="grey-text predict-next-seen-count" aria-live="polite"></span>
+            </div>
         </div>
         <button type="button" id="predictNextBtn" class="btn predict-next-btn">
             <span class="predict-next-icon" aria-hidden="true">✦</span>
@@ -428,7 +436,42 @@
         };
         const CATEGORY_STORAGE_KEY = "predict_next_categories";
         const STATUS_STORAGE_KEY = "predict_next_statuses";
-        const seenKeys = new Set();
+        const SEEN_STORAGE_KEY = "predict_next_seen";
+        const NOREPEAT_STORAGE_KEY = "predict_next_norepeat";
+
+        const noRepeatBox = document.getElementById("predictNextNoRepeat");
+        const resetSeenBtn = document.getElementById("predictNextResetSeen");
+        const seenCountEl = document.getElementById("predictNextSeenCount");
+
+        let seenKeys = new Set();
+        try {
+            const saved = JSON.parse(localStorage.getItem(SEEN_STORAGE_KEY) || "null");
+            if (Array.isArray(saved)) seenKeys = new Set(saved);
+        } catch (e) { /* ignore */ }
+
+        try {
+            const saved = localStorage.getItem(NOREPEAT_STORAGE_KEY);
+            if (saved === "0") noRepeatBox.checked = false;
+        } catch (e) { /* ignore */ }
+
+        function persistSeen() {
+            try { localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(Array.from(seenKeys))); } catch (e) {}
+        }
+        function refreshSeenCount() {
+            const n = seenKeys.size;
+            seenCountEl.textContent = n ? (n + " remembered") : "";
+        }
+        refreshSeenCount();
+
+        noRepeatBox.addEventListener("change", function () {
+            try { localStorage.setItem(NOREPEAT_STORAGE_KEY, noRepeatBox.checked ? "1" : "0"); } catch (e) {}
+        });
+
+        resetSeenBtn.addEventListener("click", function () {
+            seenKeys = new Set();
+            persistSeen();
+            refreshSeenCount();
+        });
 
         try {
             const saved = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY) || "null");
@@ -555,7 +598,7 @@
             const originalLabel = btn.querySelector(".predict-next-btn-label").textContent;
             btn.querySelector(".predict-next-btn-label").textContent = "Thinking…";
             try {
-                const exclude = useExclude ? Array.from(seenKeys) : [];
+                const exclude = (useExclude || noRepeatBox.checked) ? Array.from(seenKeys) : [];
                 const data = await requestPick(exclude);
                 if (!data.book) {
                     if (data.reason === "no_interest") {
@@ -570,6 +613,8 @@
                     return;
                 }
                 seenKeys.add(data.book.key);
+                persistSeen();
+                refreshSeenCount();
                 renderBook(data.book, data.candidate_count, data.interest);
             } catch (err) {
                 console.error(err);
