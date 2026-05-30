@@ -5268,13 +5268,27 @@ def api_bulk_suggest_genres(category):
         batch_size = 10
     batch_size = max(1, min(batch_size, 50))
 
-    rows = db.execute(
+    exclude_raw = data.get("exclude_ids") or []
+    exclude_ids = set()
+    if isinstance(exclude_raw, list):
+        for x in exclude_raw:
+            try:
+                exclude_ids.add(int(x))
+            except (TypeError, ValueError):
+                continue
+
+    sql = (
         f"SELECT id, book FROM {category} "
-        "WHERE user_id = ? AND (genres IS NULL OR genres = '' OR genres = 'None') "
-        "ORDER BY date DESC, id DESC LIMIT ?",
-        session["user_id"],
-        batch_size,
+        "WHERE user_id = ? AND (genres IS NULL OR genres = '' OR genres = 'None')"
     )
+    params = [session["user_id"]]
+    if exclude_ids:
+        placeholders = ",".join("?" * len(exclude_ids))
+        sql += f" AND id NOT IN ({placeholders})"
+        params.extend(exclude_ids)
+    sql += " ORDER BY date DESC, id DESC LIMIT ?"
+    params.append(batch_size)
+    rows = db.execute(sql, *params)
 
     # Shows-mode fast path: MAL's public list JSON already exposes per-entry
     # genres. One cached fetch + in-memory lookups beats spinning up a headless
@@ -5301,11 +5315,11 @@ def api_bulk_suggest_genres(category):
             shows_fast_path = bool(xml_lookup) and bool(mal_genres_by_id)
 
     updated_books = []
-    skipped = 0
+    skipped_ids = []
     for row in rows:
         title = (row["book"] or "").strip()
         if not title:
-            skipped += 1
+            skipped_ids.append(row["id"])
             continue
 
         genres = []
@@ -5326,7 +5340,7 @@ def api_bulk_suggest_genres(category):
             genres = [g for g, _score, _src in suggestions if g]
 
         if not genres:
-            skipped += 1
+            skipped_ids.append(row["id"])
             continue
         joined = ", ".join(genres)
         db.execute(
@@ -5337,7 +5351,8 @@ def api_bulk_suggest_genres(category):
 
     return {
         "updated": len(updated_books),
-        "skipped": skipped,
+        "skipped": len(skipped_ids),
+        "skipped_ids": skipped_ids,
         "books": updated_books,
         "remaining": count_books_missing_genres_with_filters(category, session["user_id"]),
     }

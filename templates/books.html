@@ -709,22 +709,27 @@
                     totalUpdated = 0;
                     totalSkipped = 0;
                     totalToProcess = bulkSuggestRemaining;
+                    const attemptedIds = new Set();
                     setRunningState();
                     statusEl.textContent = "Inferring genres…";
 
                     try {
-                        while (!cancelRequested && bulkSuggestRemaining > 0) {
+                        while (!cancelRequested) {
                             controller = new AbortController();
                             const response = await fetch("/api/bulk_suggest_genres/" + category, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ batch_size: bulkSuggestBatchSize }),
+                                body: JSON.stringify({
+                                    batch_size: bulkSuggestBatchSize,
+                                    exclude_ids: Array.from(attemptedIds),
+                                }),
                                 signal: controller.signal,
                             });
                             controller = null;
                             if (!response.ok) throw new Error("HTTP " + response.status);
                             const data = await response.json();
                             const books = data.books || [];
+                            const skippedIds = data.skipped_ids || [];
 
                             // Patch any rows currently in the DOM (lazy-load may have not pulled all yet).
                             books.forEach(function (book) {
@@ -742,33 +747,39 @@
                                 row.dataset.needsGenres = "0";
                             });
 
-                            totalUpdated += data.updated || 0;
-                            totalSkipped += data.skipped || 0;
+                            books.forEach(function (book) { attemptedIds.add(book.id); });
+                            skippedIds.forEach(function (id) { attemptedIds.add(id); });
+
+                            const batchUpdated = data.updated || 0;
+                            const batchSkipped = skippedIds.length;
+                            totalUpdated += batchUpdated;
+                            totalSkipped += batchSkipped;
                             if (typeof data.remaining === "number") {
                                 bulkSuggestRemaining = Math.max(0, data.remaining);
                             } else {
-                                bulkSuggestRemaining = Math.max(0, bulkSuggestRemaining - (data.updated || 0));
+                                bulkSuggestRemaining = Math.max(0, bulkSuggestRemaining - batchUpdated);
                             }
                             refreshCount();
 
                             if (cancelRequested) break;
-                            if (bulkSuggestRemaining > 0) {
-                                const totalChecked = totalUpdated + totalSkipped;
-                                statusEl.textContent = "Progress: " + totalChecked + " / " + totalToProcess + " checked, " + totalUpdated + " updated, " + totalSkipped + " skipped, " + bulkSuggestRemaining + " left…";
-                            }
+                            // Server returned no progress — every remaining row is either
+                            // already processed or unreachable. Stop the loop cleanly.
+                            if (batchUpdated === 0 && batchSkipped === 0) break;
+
+                            const processed = Math.min(totalUpdated + totalSkipped, totalToProcess);
+                            statusEl.textContent = "Progress: " + processed + " / " + totalToProcess + " — " + totalUpdated + " updated, " + totalSkipped + " skipped…";
                         }
 
+                        const processed = Math.min(totalUpdated + totalSkipped, totalToProcess);
                         if (cancelRequested) {
-                            const totalChecked = totalUpdated + totalSkipped;
-                            statusEl.textContent = "Cancelled. " + totalChecked + " / " + totalToProcess + " checked, " + totalUpdated + " updated, " + totalSkipped + " skipped, " + bulkSuggestRemaining + " left.";
+                            statusEl.textContent = "Cancelled at " + processed + " / " + totalToProcess + " — " + totalUpdated + " updated, " + totalSkipped + " skipped.";
                         } else {
-                            const totalChecked = totalUpdated + totalSkipped;
-                            statusEl.textContent = "Done. " + totalChecked + " checked, " + totalUpdated + " updated, " + totalSkipped + " skipped.";
+                            statusEl.textContent = "Done. " + totalUpdated + " updated, " + totalSkipped + " had no source data.";
                         }
                     } catch (err) {
                         if (err && err.name === "AbortError") {
-                            const totalChecked = totalUpdated + totalSkipped;
-                            statusEl.textContent = "Cancelled. " + totalChecked + " / " + totalToProcess + " checked, " + totalUpdated + " updated, " + totalSkipped + " skipped, " + bulkSuggestRemaining + " left.";
+                            const processed = Math.min(totalUpdated + totalSkipped, totalToProcess);
+                            statusEl.textContent = "Cancelled at " + processed + " / " + totalToProcess + " — " + totalUpdated + " updated, " + totalSkipped + " skipped.";
                         } else {
                             statusEl.textContent = "Suggestion failed: " + (err.message || err);
                         }
