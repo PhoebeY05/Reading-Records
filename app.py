@@ -411,6 +411,7 @@ def _build_books_filter_clause(
     status_filter=None,
     existence_filter=None,
     reread_filter=None,
+    genre_filter=None,
     date_from=None,
     date_to=None,
 ):
@@ -427,6 +428,10 @@ def _build_books_filter_clause(
         if reread_value is not None:
             query += " AND reread = ?"
             params.append(reread_value)
+    genre_filter = (genre_filter or "").strip().lower()
+    if genre_filter:
+        query += " AND LOWER(COALESCE(genres, '')) LIKE ?"
+        params.append(f"%{genre_filter}%")
     date_from = _normalize_date_filter(date_from)
     date_to = _normalize_date_filter(date_to)
     if date_from:
@@ -449,6 +454,7 @@ def query_books_with_filters(
     status_filter=None,
     existence_filter=None,
     reread_filter=None,
+    genre_filter=None,
     date_from=None,
     date_to=None,
     limit=None,
@@ -460,6 +466,7 @@ def query_books_with_filters(
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
     )
@@ -476,6 +483,7 @@ def count_books_with_filters(
     status_filter=None,
     existence_filter=None,
     reread_filter=None,
+    genre_filter=None,
     date_from=None,
     date_to=None,
 ):
@@ -485,6 +493,7 @@ def count_books_with_filters(
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
     )
@@ -498,6 +507,7 @@ def count_books_missing_genres_with_filters(
     status_filter=None,
     existence_filter=None,
     reread_filter=None,
+    genre_filter=None,
     date_from=None,
     date_to=None,
 ):
@@ -507,6 +517,7 @@ def count_books_missing_genres_with_filters(
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
     )
@@ -3717,24 +3728,27 @@ def choose():
     status_filter = (request.form.get("status_filter") or "").strip() if request.method == "POST" else ""
     existence_filter = (request.form.get("filter") or "").strip() if request.method == "POST" else ""
     reread_filter = (request.form.get("reread_filter") or "").strip() if request.method == "POST" else ""
+    genre_filter = (request.form.get("genre_filter") or "").strip() if request.method == "POST" else ""
     date_from = _normalize_date_filter(request.form.get("date_from")) if request.method == "POST" else ""
     date_to = _normalize_date_filter(request.form.get("date_to")) if request.method == "POST" else ""
 
-    if not (status_filter or existence_filter or reread_filter or date_from or date_to):
+    if not (status_filter or existence_filter or reread_filter or genre_filter or date_from or date_to):
         stored = session.get("filters", {}).get(page, {})
         status_filter = stored.get("status_filter", "")
         existence_filter = stored.get("existence_filter", "")
         reread_filter = stored.get("reread_filter", "")
+        genre_filter = stored.get("genre_filter", "")
         date_from = stored.get("date_from", "")
         date_to = stored.get("date_to", "")
 
-    if status_filter or existence_filter or reread_filter or date_from or date_to:
+    if status_filter or existence_filter or reread_filter or genre_filter or date_from or date_to:
         candidates = query_books_with_filters(
             page,
             session["user_id"],
             status_filter,
             existence_filter,
             reread_filter,
+            genre_filter,
             date_from,
             date_to,
         )
@@ -3773,6 +3787,7 @@ def render_category_page(category, template_name):
             status_filter = ""
             existence_filter = ""
             reread_filter = ""
+            genre_filter = ""
             date_from = ""
             date_to = ""
         else:
@@ -3780,12 +3795,14 @@ def render_category_page(category, template_name):
             new_status = request.form.get("status_filter")
             new_exist = request.form.get("filter")
             new_reread = request.form.get("reread_filter")
+            new_genre = request.form.get("genre_filter")
             new_date_from = request.form.get("date_from")
             new_date_to = request.form.get("date_to")
 
             status_filter = (new_status.strip() if new_status is not None else saved_filters.get("status_filter", ""))
             existence_filter = (new_exist.strip() if new_exist is not None else saved_filters.get("existence_filter", ""))
             reread_filter = (new_reread.strip() if new_reread is not None else saved_filters.get("reread_filter", ""))
+            genre_filter = (new_genre.strip() if new_genre is not None else saved_filters.get("genre_filter", ""))
             date_from = _normalize_date_filter(new_date_from if new_date_from is not None else saved_filters.get("date_from", ""))
             date_to = _normalize_date_filter(new_date_to if new_date_to is not None else saved_filters.get("date_to", ""))
 
@@ -3793,6 +3810,7 @@ def render_category_page(category, template_name):
                 "status_filter": status_filter,
                 "existence_filter": existence_filter,
                 "reread_filter": reread_filter,
+                "genre_filter": genre_filter,
                 "date_from": date_from,
                 "date_to": date_to,
             }
@@ -3801,6 +3819,7 @@ def render_category_page(category, template_name):
         status_filter = saved_filters.get("status_filter", "")
         existence_filter = saved_filters.get("existence_filter", "")
         reread_filter = saved_filters.get("reread_filter", "")
+        genre_filter = saved_filters.get("genre_filter", "")
         date_from = saved_filters.get("date_from", "")
         date_to = saved_filters.get("date_to", "")
         try:
@@ -3814,6 +3833,7 @@ def render_category_page(category, template_name):
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
     )
@@ -3823,6 +3843,7 @@ def render_category_page(category, template_name):
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
     )
@@ -3847,6 +3868,7 @@ def render_category_page(category, template_name):
         status_filter,
         existence_filter,
         reread_filter,
+        genre_filter,
         date_from,
         date_to,
         limit=BOOK_PAGE_SIZE,
@@ -3863,6 +3885,7 @@ def render_category_page(category, template_name):
         selected_status=status_filter,
         selected_existence=existence_filter,
         selected_reread=reread_filter,
+        selected_genre_filter=genre_filter,
         selected_date_from=date_from,
         selected_date_to=date_to,
         status_options=get_status_options(category, session["user_id"]),
@@ -5402,6 +5425,7 @@ def api_bulk_suggest_genres(category):
         saved_filters.get("status_filter", ""),
         saved_filters.get("existence_filter", ""),
         saved_filters.get("reread_filter", ""),
+        saved_filters.get("genre_filter", ""),
         saved_filters.get("date_from", ""),
         saved_filters.get("date_to", ""),
     )
@@ -5484,6 +5508,7 @@ def api_bulk_suggest_genres(category):
             saved_filters.get("status_filter", ""),
             saved_filters.get("existence_filter", ""),
             saved_filters.get("reread_filter", ""),
+            saved_filters.get("genre_filter", ""),
             saved_filters.get("date_from", ""),
             saved_filters.get("date_to", ""),
         ),

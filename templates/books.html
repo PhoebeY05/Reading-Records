@@ -124,12 +124,17 @@
                         </select>
                     </div>
                     <div class="col-12 col-md">
-                        <label class="visually-hidden" for="bookDateFrom">Date added from</label>
-                        <input id="bookDateFrom" type="date" class="form-control book-date-input {% if selected_date_from %}filter-active{% endif %}" name="date_from" value="{{ selected_date_from or '' }}" onchange="this.form.submit()" aria-label="Filter by start date">
+                        <input id="bookGenreFilter" type="search" class="form-control book-filter-input {% if selected_genre_filter %}filter-active{% endif %}" name="genre_filter" value="{{ selected_genre_filter or '' }}" placeholder="Genres" onchange="this.form.submit()" aria-label="Filter by genres">
                     </div>
                     <div class="col-12 col-md">
-                        <label class="visually-hidden" for="bookDateTo">Date added to</label>
-                        <input id="bookDateTo" type="date" class="form-control book-date-input {% if selected_date_to %}filter-active{% endif %}" name="date_to" value="{{ selected_date_to or '' }}" onchange="this.form.submit()" aria-label="Filter by end date">
+                        <div class="book-date-field {% if selected_date_from %}has-value{% endif %}" data-placeholder="Start date">
+                            <input id="bookDateFrom" type="date" class="form-control book-filter-input book-date-input {% if selected_date_from %}filter-active{% endif %}" name="date_from" value="{{ selected_date_from or '' }}" placeholder="Start date" onchange="this.form.submit()" aria-label="Filter by start date">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md">
+                        <div class="book-date-field {% if selected_date_to %}has-value{% endif %}" data-placeholder="End date">
+                            <input id="bookDateTo" type="date" class="form-control book-filter-input book-date-input {% if selected_date_to %}filter-active{% endif %}" name="date_to" value="{{ selected_date_to or '' }}" placeholder="End date" onchange="this.form.submit()" aria-label="Filter by end date">
+                        </div>
                     </div>
                     {% if page == "/completed" %}
                     <div class="col-12 col-md">
@@ -301,6 +306,20 @@
                 bookPageSearch.addEventListener("input", applyPageSearch);
                 applyPageSearch();
             }
+
+            function syncDateFieldPlaceholders() {
+                document.querySelectorAll(".book-date-field").forEach(function (field) {
+                    const input = field.querySelector("input[type='date']");
+                    if (!input) return;
+                    field.classList.toggle("has-value", !!input.value);
+                });
+            }
+
+            document.querySelectorAll(".book-date-field input[type='date']").forEach(function (input) {
+                input.addEventListener("input", syncDateFieldPlaceholders);
+                input.addEventListener("change", syncDateFieldPlaceholders);
+            });
+            syncDateFieldPlaceholders();
 
             const bulkSuggestCountEl = document.getElementById("bulk-suggest-empty-count");
             if (bulkSuggestCountEl) {
