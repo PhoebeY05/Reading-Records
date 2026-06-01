@@ -253,6 +253,76 @@
                   return html || "—";
               }
 
+              function syncBookViews(data) {
+                  if (!data) return;
+                  const selector = '[data-book-link][data-category="' + data.category + '"][data-book-id="' + data.id + '"]';
+                  document.querySelectorAll(selector).forEach(function (link) {
+                      const row = link.closest("tr.book-row");
+                      if (row) {
+                          const nameEl = row.querySelector(".book-name");
+                          if (nameEl) nameEl.textContent = data.book || "";
+                          row.dataset.bookTitle = data.book || "";
+                          row.dataset.searchText = ((data.book || "") + " " + (data.status || "") + " " + (data.date || "") + " " + (data.genres || "") + " " + (data.series || "") + " " + (data.notes || "")).toLowerCase();
+                          const dateEl = row.querySelector(".book-date");
+                          if (dateEl) dateEl.textContent = data.date || "—";
+                          const statusBadge = row.querySelector(".book-status-badge");
+                          if (statusBadge) {
+                              if (data.status) {
+                                  statusBadge.hidden = false;
+                                  statusBadge.textContent = data.status;
+                              } else {
+                                  statusBadge.hidden = true;
+                              }
+                          }
+                      }
+
+                      const card = link.closest(".book-card");
+                      if (card) {
+                          const titleEl = card.querySelector(".book-title");
+                          if (titleEl) titleEl.textContent = data.book || "";
+                          const dateEl = card.querySelector(".text-muted");
+                          if (dateEl) dateEl.textContent = data.date || "";
+                          const metaEl = card.querySelector(".book-meta");
+                          if (metaEl) {
+                              const parts = [];
+                              if (data.notes) parts.push(data.notes);
+                              if (data.type) parts.push(data.type);
+                              if (data.reread !== undefined) parts.push(String(data.reread));
+                              metaEl.textContent = parts.join(" ");
+                          }
+                      }
+
+                      const searchCard = link.closest(".search-card");
+                      if (searchCard) {
+                          const titleEl = searchCard.querySelector(".search-title");
+                          if (titleEl) titleEl.textContent = data.book || "";
+                          const metaEl = searchCard.querySelector(".search-meta");
+                          if (metaEl) {
+                              metaEl.textContent = "Added " + (data.date || "—") + (data.status ? " · Status: " + data.status : "");
+                          }
+                      }
+
+                      const seriesLink = link.closest(".series-book-link");
+                      if (seriesLink) {
+                          const titleEl = seriesLink.querySelector(".series-book-title");
+                          if (titleEl) titleEl.textContent = data.book || "";
+                          const statusEl = seriesLink.querySelector(".series-book-status");
+                          if (statusEl) {
+                              if (data.category === "tbr" && data.status) {
+                                  statusEl.hidden = false;
+                                  statusEl.textContent = data.status;
+                              } else if (data.category !== "tbr") {
+                                  statusEl.hidden = true;
+                              }
+                          }
+                      }
+                  });
+
+                  if (typeof window.__bookPageApplySearch === "function") {
+                      window.__bookPageApplySearch();
+                  }
+              }
+
               function populate(data) {
                   currentData = data;
                   form.action = "/update/" + data.category + "/" + data.id;
@@ -311,7 +381,8 @@
               document.addEventListener("click", function (e) {
                   const link = e.target.closest("[data-book-link]");
                   if (!link) return;
-                  if (e.target.closest("button, input, select, textarea, label, form")) return;
+                  const interactive = e.target.closest("button, input, select, textarea, label, form");
+                  if (interactive && interactive !== link) return;
                   e.preventDefault();
                   const category = link.dataset.category;
                   const bookId = link.dataset.bookId;
@@ -357,6 +428,7 @@
                           throw new Error(data.error || "Save failed.");
                       }
                       populate(data);
+                      syncBookViews(data);
                       showSaveStatus("Saved");
                   } catch (err) {
                       window.alert(err.message || "Save failed.");

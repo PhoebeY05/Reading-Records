@@ -123,6 +123,14 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="col-12 col-md">
+                        <label class="visually-hidden" for="bookDateFrom">Date added from</label>
+                        <input id="bookDateFrom" type="date" class="form-control book-date-input {% if selected_date_from %}filter-active{% endif %}" name="date_from" value="{{ selected_date_from or '' }}" onchange="this.form.submit()" aria-label="Filter by start date">
+                    </div>
+                    <div class="col-12 col-md">
+                        <label class="visually-hidden" for="bookDateTo">Date added to</label>
+                        <input id="bookDateTo" type="date" class="form-control book-date-input {% if selected_date_to %}filter-active{% endif %}" name="date_to" value="{{ selected_date_to or '' }}" onchange="this.form.submit()" aria-label="Filter by end date">
+                    </div>
                     {% if page == "/completed" %}
                     <div class="col-12 col-md">
                         <select class="form-select grey {% if selected_reread %}filter-active{% endif %}" name="reread_filter" onchange="this.form.submit()" aria-label="Filter by {% if site_mode == 'shows' %}rewatches{% else %}rereads{% endif %}">
@@ -154,8 +162,7 @@
                 </thead>
                 <tbody>
                     {% for book in books %}
-                        {% set collapse_id = 'book-info-' ~ book.id %}
-                        <tr id="book-{{ book.id }}" class="book-row" data-book-id="{{ book.id }}" data-book-title="{{ book.book }}" data-needs-genres="{% if not book.genres or book.genres == 'None' %}1{% else %}0{% endif %}" data-search-text="{{ ((book.book or '') ~ ' ' ~ (book.status or '') ~ ' ' ~ (book.date or '') ~ ' ' ~ (book.genres or '') ~ ' ' ~ (book.series or '') ~ ' ' ~ (book.notes or '')) | lower }}">
+                        <tr id="book-{{ book.id }}" class="book-row" data-book-link data-category="{{ page.lstrip('/') }}" data-book-id="{{ book.id }}" data-book-title="{{ book.book }}" data-needs-genres="{% if not book.genres or book.genres == 'None' %}1{% else %}0{% endif %}" data-search-text="{{ ((book.book or '') ~ ' ' ~ (book.status or '') ~ ' ' ~ (book.date or '') ~ ' ' ~ (book.genres or '') ~ ' ' ~ (book.series or '') ~ ' ' ~ (book.notes or '')) | lower }}">
                             <td class="col-action">
                                 {% block checked scoped %}{% endblock %}
                             </td>
@@ -183,72 +190,12 @@
                                 <span class="book-date">{{book.date}}</span>
                             </td>
                             <td class="col-info">
-                                <button class="book-info-toggle js-book-toggle" type="button" data-target="book-info-{{ book.id }}" aria-expanded="false" aria-controls="book-info-{{ book.id }}">
+                                <button class="book-info-toggle" type="button" data-book-link data-category="{{ page.lstrip('/') }}" data-book-id="{{ book.id }}" aria-label="Open details for {{ book.book }}" title="Open details">
                                     <img src="../static/more.png" alt="More Info" height="26" width="26">
                                 </button>
                             </td>
                             <td class="col-action">
                                 {% block crossed scoped %}{% endblock %}
-                            </td>
-                        </tr>
-                        <tr class="book-info-row" id="{{collapse_id}}" hidden>
-                            <td colspan="6" class="book-info-cell">
-                                <div class="book-info-card">
-                                    <button type="button" class="book-info-edit-btn js-edit-toggle" aria-label="Edit book">✎ Edit</button>
-                                    <div class="book-info-display js-display">
-                                        <dl class="book-info-meta">
-                                            <div class="book-info-pair"><dt>Date added</dt><dd>{{book.date}}</dd></div>
-                                            <div class="book-info-pair"><dt>Status</dt><dd>{{book.status or "—"}}</dd></div>
-                                            <div class="book-info-pair"><dt>Genres</dt><dd>{{book.genres or "—"}}</dd></div>
-                                            <div class="book-info-pair"><dt>Series</dt><dd>{{book.series or "—"}}</dd></div>
-                                            {% if book.reread is defined %}<div class="book-info-pair"><dt>{% if site_mode == 'shows' %}Rewatches{% else %}Rereads{% endif %}</dt><dd>{{book.reread}} time(s)</dd></div>{% endif %}
-                                            {% if book.days is defined %}<div class="book-info-pair"><dt>Days to finish</dt><dd>{{book.days}}</dd></div>{% endif %}
-                                        </dl>
-                                        <div class="book-info-notes">
-                                            <p class="book-info-notes-label">Notes</p>
-                                            <p class="book-info-notes-text">{{book.notes or "—"}}</p>
-                                        </div>
-                                    </div>
-                                    <form action="/update/{{ page.lstrip('/') }}/{{ book.id }}" method="post" class="book-info-edit js-edit" hidden>
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">{{ site_record_label }} name</span>
-                                            <input type="text" name="book" value="{{ book.book }}" required>
-                                        </label>
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">Status</span>
-                                            <input type="text" name="status" value="{{ book.status or '' }}" list="status-options-{{ book.id }}" placeholder="e.g. Finished">
-                                            <datalist id="status-options-{{ book.id }}">
-                                                {% for s in status_options %}<option value="{{ s }}">{% endfor %}
-                                            </datalist>
-                                        </label>
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">Genres</span>
-                                            <div class="d-flex gap-2 align-items-stretch">
-                                                <input type="text" name="genres" value="{{ book.genres or '' }}" placeholder="Comma-separated genres" class="flex-grow-1">
-                                                <button type="button" class="btn btn-outline-secondary btn-sm js-suggest-genres">Suggest</button>
-                                            </div>
-                                        </label>
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">Series</span>
-                                            <input type="text" name="series" value="{{ book.series or '' }}" placeholder="Series name">
-                                        </label>
-                                        {% if book.reread is defined %}
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">{% if site_mode == 'shows' %}Rewatches{% else %}Rereads{% endif %}</span>
-                                            <input type="number" name="reread" value="{{ book.reread }}" min="0" step="1" inputmode="numeric" required>
-                                        </label>
-                                        {% endif %}
-                                        <label class="book-edit-field">
-                                            <span class="book-edit-label">Notes</span>
-                                            <textarea name="notes" rows="3">{{ book.notes or '' }}</textarea>
-                                        </label>
-                                        <div class="book-edit-actions">
-                                            <button type="button" class="btn btn-outline-secondary js-edit-cancel">Cancel</button>
-                                            <button type="submit" class="btn random-modal-primary">Save</button>
-                                        </div>
-                                        <div class="book-edit-feedback book-save-status" aria-live="polite" hidden></div>
-                                    </form>
-                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -273,19 +220,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            function showInfoRow(infoRow) {
-                infoRow.hidden = false;
-                infoRow.dataset.open = "1";
-                const button = document.querySelector('.js-book-toggle[data-target="' + infoRow.id + '"]');
-                if (button) button.setAttribute("aria-expanded", "true");
-            }
-            function hideInfoRow(infoRow) {
-                infoRow.hidden = true;
-                infoRow.dataset.open = "0";
-                const button = document.querySelector('.js-book-toggle[data-target="' + infoRow.id + '"]');
-                if (button) button.setAttribute("aria-expanded", "false");
-            }
-
             const bookPageSearch = document.getElementById("bookPageSearch");
             const bookPageSearchMeta = document.getElementById("bookPageSearchMeta");
             const booksPage = document.querySelector(".book-list-page");
@@ -354,21 +288,14 @@
                 const query = (bookPageSearch.value || "").trim().toLowerCase();
                 let visibleCount = 0;
                 getBookRows().forEach(function (row) {
-                    const infoRow = document.getElementById("book-info-" + row.dataset.bookId);
                     const haystack = row.dataset.searchText || "";
                     const match = !query || haystack.includes(query);
                     row.hidden = !match;
-                    if (infoRow) {
-                        if (!match) {
-                            infoRow.hidden = true;
-                        } else {
-                            infoRow.hidden = infoRow.dataset.open !== "1";
-                        }
-                    }
                     if (match) visibleCount++;
                 });
                 updateSearchMeta(visibleCount, query);
             }
+            window.__bookPageApplySearch = applyPageSearch;
 
             if (bookPageSearch) {
                 bookPageSearch.addEventListener("input", applyPageSearch);
@@ -380,112 +307,6 @@
                 bulkSuggestRemaining = parseInt(bulkSuggestCountEl.textContent || "0", 10) || 0;
                 refreshBulkSuggestCount();
             }
-
-            document.addEventListener("click", function (event) {
-                const toggleBtn = event.target.closest(".js-book-toggle");
-                if (toggleBtn) {
-                    const target = document.getElementById(toggleBtn.dataset.target);
-                    if (!target) return;
-                    if (target.hidden) showInfoRow(target);
-                    else hideInfoRow(target);
-                    return;
-                }
-
-                const editToggleBtn = event.target.closest(".js-edit-toggle");
-                if (editToggleBtn) {
-                    const card = editToggleBtn.closest(".book-info-card");
-                    if (!card) return;
-                    card.querySelector(".js-display").hidden = true;
-                    card.querySelector(".js-edit").hidden = false;
-                    editToggleBtn.hidden = true;
-                    return;
-                }
-
-                const editCancelBtn = event.target.closest(".js-edit-cancel");
-                if (editCancelBtn) {
-                    const card = editCancelBtn.closest(".book-info-card");
-                    if (!card) return;
-                    card.querySelector(".js-display").hidden = false;
-                    card.querySelector(".js-edit").hidden = true;
-                    const toggle = card.querySelector(".js-edit-toggle");
-                    if (toggle) toggle.hidden = false;
-                    return;
-                }
-
-                const suggestBtn = event.target.closest(".js-suggest-genres");
-                if (suggestBtn) {
-                    const form = suggestBtn.closest("form");
-                    if (!form) return;
-                    const titleInput = form.querySelector('[name="book"]');
-                    const genresInput = form.querySelector('[name="genres"]');
-                    if (!titleInput || !genresInput) return;
-                    const title = (titleInput.value || "").trim();
-                    if (!title) { titleInput.focus(); return; }
-                    const originalLabel = suggestBtn.textContent;
-                    const originalPlaceholder = genresInput.placeholder;
-                    suggestBtn.disabled = true;
-                    suggestBtn.textContent = "…";
-                    (async function () {
-                        try {
-                            const response = await fetch("/api/infer_genres", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ title: title }),
-                            });
-                            if (!response.ok) throw new Error("HTTP " + response.status);
-                            const data = await response.json();
-                            const genres = (data.suggestions || [])
-                                .map(function (s) { return s.genre; })
-                                .filter(Boolean);
-                            if (genres.length) {
-                                genresInput.value = genres.join(", ");
-                                decrementBulkSuggestCount();
-                            } else {
-                                genresInput.placeholder = "No suggestions found";
-                                setTimeout(function () { genresInput.placeholder = originalPlaceholder; }, 3000);
-                            }
-                        } catch (err) {
-                            genresInput.placeholder = "Suggestion failed — try again";
-                            setTimeout(function () { genresInput.placeholder = originalPlaceholder; }, 3000);
-                        } finally {
-                            suggestBtn.disabled = false;
-                            suggestBtn.textContent = originalLabel;
-                        }
-                    })();
-                }
-            });
-
-            document.addEventListener("submit", async function (event) {
-                const form = event.target;
-                if (!form.matches("form.book-info-edit")) return;
-                event.preventDefault();
-                const card = form.closest(".book-info-card");
-                const submitButton = form.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.dataset.originalLabel = submitButton.textContent;
-                    submitButton.textContent = "Saving…";
-                }
-                try {
-                    const response = await fetch(form.action, {
-                        method: "POST",
-                        headers: { "X-Requested-With": "XMLHttpRequest" },
-                        body: new FormData(form),
-                    });
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.error || "Save failed.");
-                    }
-                    syncBookCard(card, data);
-                } catch (err) {
-                    window.alert(err.message || "Save failed.");
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.textContent = submitButton.dataset.originalLabel || "Save";
-                    }
-                }
-            });
 
             async function loadNextBooksPage() {
                 if (!booksPage || !bookTableBody) return;
@@ -556,8 +377,6 @@
                 const row = document.querySelector(hash);
                 if (row) {
                     const bookId = hash.slice("#book-".length);
-                    const infoRow = document.getElementById("book-info-" + bookId);
-                    if (infoRow) showInfoRow(infoRow);
                     requestAnimationFrame(function () {
                         const nav = document.querySelector(".main-nav");
                         const navOffset = nav ? nav.offsetHeight : 0;
@@ -567,99 +386,6 @@
                         row.classList.add("book-flash");
                         setTimeout(function () { row.classList.remove("book-flash"); }, 2600);
                     });
-                }
-            }
-
-            function syncBookCard(card, data) {
-                if (!card || !data) return;
-                const infoRow = card.closest(".book-info-row");
-                const summaryRow = infoRow ? infoRow.previousElementSibling : null;
-                const feedbackEl = card.querySelector(".book-edit-feedback");
-
-                if (summaryRow) {
-                    const nameEl = summaryRow.querySelector(".book-name");
-                    if (nameEl) nameEl.textContent = data.book || "";
-                    summaryRow.dataset.bookTitle = data.book || "";
-
-                    const dateEl = summaryRow.querySelector(".book-date");
-                    if (dateEl) dateEl.textContent = data.date || "—";
-
-                    const statusBadge = summaryRow.querySelector(".book-status-badge");
-                    if (statusBadge) {
-                        if (data.status) {
-                            statusBadge.hidden = false;
-                            statusBadge.textContent = data.status;
-                        } else {
-                            statusBadge.hidden = true;
-                        }
-                    }
-                }
-
-                card.querySelectorAll(".book-info-pair").forEach(function (pair) {
-                    const dt = pair.querySelector("dt");
-                    const dd = pair.querySelector("dd");
-                    if (!dt || !dd) return;
-                    const label = (dt.textContent || "").trim();
-                    if (label === "Date added") {
-                        dd.textContent = data.date || "—";
-                    } else if (label === "Status") {
-                        dd.textContent = data.status || "—";
-                    } else if (label === "Genres") {
-                        dd.textContent = data.genres || "—";
-                    } else if (label === "Series") {
-                        dd.textContent = data.series || "—";
-                    } else if (label === "Rereads" || label === "Rewatches") {
-                        if (data.reread !== undefined) {
-                            pair.hidden = false;
-                            dd.textContent = data.reread + " time(s)";
-                        } else {
-                            pair.hidden = true;
-                        }
-                    } else if (label === "Days to finish") {
-                        if (data.days !== undefined) {
-                            pair.hidden = false;
-                            dd.textContent = data.days;
-                        } else {
-                            pair.hidden = true;
-                        }
-                    }
-                });
-
-                const notesText = card.querySelector(".book-info-notes-text");
-                if (notesText) {
-                    notesText.innerHTML = linkifyNotes(data.notes);
-                }
-
-                const editForm = card.querySelector("form.book-info-edit");
-                if (editForm) {
-                    editForm.querySelector('[name="book"]').value = data.book || "";
-                    editForm.querySelector('[name="status"]').value = data.status || "";
-                    editForm.querySelector('[name="genres"]').value = data.genres || "";
-                    editForm.querySelector('[name="series"]').value = data.series || "";
-                    const notesField = editForm.querySelector('[name="notes"]');
-                    if (notesField) notesField.value = data.notes || "";
-                    const rereadField = editForm.querySelector('[name="reread"]');
-                    if (rereadField) rereadField.value = data.reread !== undefined ? data.reread : "";
-                }
-
-                card.querySelector(".js-display").hidden = false;
-                card.querySelector(".js-edit").hidden = true;
-                const toggle = card.querySelector(".js-edit-toggle");
-                if (toggle) toggle.hidden = false;
-
-                if (feedbackEl) {
-                    feedbackEl.textContent = "Saved";
-                    feedbackEl.hidden = false;
-                    feedbackEl.classList.add("is-visible");
-                    if (feedbackEl._hideTimer) {
-                        clearTimeout(feedbackEl._hideTimer);
-                    }
-                    feedbackEl._hideTimer = setTimeout(function () {
-                        feedbackEl.classList.remove("is-visible");
-                        feedbackEl.hidden = true;
-                        feedbackEl.textContent = "";
-                        feedbackEl._hideTimer = null;
-                    }, 1800);
                 }
             }
 
@@ -735,17 +461,12 @@
                             books.forEach(function (book) {
                                 const row = document.querySelector('tr.book-row[data-book-id="' + book.id + '"]');
                                 if (!row) return;
-                                row.querySelectorAll('.book-info-pair').forEach(function (pair) {
-                                    const dt = pair.querySelector('dt');
-                                    if (dt && dt.textContent.trim() === "Genres") {
-                                        const dd = pair.querySelector('dd');
-                                        if (dd) dd.textContent = book.genres;
-                                    }
-                                });
-                                const editInput = row.querySelector('form.book-info-edit [name="genres"]');
-                                if (editInput) editInput.value = book.genres;
                                 row.dataset.needsGenres = "0";
+                                row.dataset.searchText = ((row.dataset.searchText || "") + " " + (book.genres || "")).trim().toLowerCase();
                             });
+                            if (typeof window.__bookPageApplySearch === "function") {
+                                window.__bookPageApplySearch();
+                            }
 
                             books.forEach(function (book) { attemptedIds.add(book.id); });
                             skippedIds.forEach(function (id) { attemptedIds.add(id); });
@@ -874,16 +595,11 @@
                                 if (!row) return;
                                 const dateCell = row.querySelector(".col-date .book-date");
                                 if (dateCell) dateCell.textContent = book.date;
-                                row.querySelectorAll('.book-info-pair').forEach(function (pair) {
-                                    const dt = pair.querySelector('dt');
-                                    if (!dt) return;
-                                    const label = dt.textContent.trim();
-                                    const dd = pair.querySelector('dd');
-                                    if (!dd) return;
-                                    if (label === "Date added") dd.textContent = book.date;
-                                    else if (label === "Days to finish") dd.textContent = book.days;
-                                });
+                                row.dataset.searchText = ((row.dataset.searchText || "") + " " + (book.date || "")).trim().toLowerCase();
                             });
+                            if (typeof window.__bookPageApplySearch === "function") {
+                                window.__bookPageApplySearch();
+                            }
 
                             totalUpdated += data.updated || 0;
                             if (typeof data.remaining === "number") {
@@ -1001,15 +717,19 @@
                                 const row = document.querySelector('tr.book-row[data-book-id="' + book.id + '"]');
                                 if (!row) return;
                                 const badge = row.querySelector(".col-status .book-status-badge");
-                                if (badge) badge.textContent = book.status;
-                                row.querySelectorAll('.book-info-pair').forEach(function (pair) {
-                                    const dt = pair.querySelector('dt');
-                                    if (dt && dt.textContent.trim() === "Status") {
-                                        const dd = pair.querySelector('dd');
-                                        if (dd) dd.textContent = book.status;
+                                if (badge) {
+                                    if (book.status) {
+                                        badge.hidden = false;
+                                        badge.textContent = book.status;
+                                    } else {
+                                        badge.hidden = true;
                                     }
-                                });
+                                }
+                                row.dataset.searchText = ((row.dataset.searchText || "") + " " + (book.status || "")).trim().toLowerCase();
                             });
+                            if (typeof window.__bookPageApplySearch === "function") {
+                                window.__bookPageApplySearch();
+                            }
 
                             totalUpdated += data.updated || 0;
                             if (typeof data.remaining === "number") {

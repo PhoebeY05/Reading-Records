@@ -395,7 +395,25 @@ def get_reread_options(user_id):
     return [r["reread"] for r in rows]
 
 
-def _build_books_filter_clause(category, user_id, status_filter=None, existence_filter=None, reread_filter=None):
+def _normalize_date_filter(value):
+    value = (value or "").strip()
+    if not value:
+        return ""
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        return ""
+
+
+def _build_books_filter_clause(
+    category,
+    user_id,
+    status_filter=None,
+    existence_filter=None,
+    reread_filter=None,
+    date_from=None,
+    date_to=None,
+):
     query = f"FROM {category} WHERE user_id = ?"
     params = [user_id]
     if status_filter:
@@ -409,6 +427,14 @@ def _build_books_filter_clause(category, user_id, status_filter=None, existence_
         if reread_value is not None:
             query += " AND reread = ?"
             params.append(reread_value)
+    date_from = _normalize_date_filter(date_from)
+    date_to = _normalize_date_filter(date_to)
+    if date_from:
+        query += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND date <= ?"
+        params.append(date_to)
     if existence_filter in ("genres", "series", "notes"):
         query += f" AND {existence_filter} IS NOT NULL AND {existence_filter} != ''"
         order_clause = f" ORDER BY {existence_filter}"
@@ -417,8 +443,26 @@ def _build_books_filter_clause(category, user_id, status_filter=None, existence_
     return query, params, order_clause
 
 
-def query_books_with_filters(category, user_id, status_filter=None, existence_filter=None, reread_filter=None, limit=None, offset=0):
-    query, params, order_clause = _build_books_filter_clause(category, user_id, status_filter, existence_filter, reread_filter)
+def query_books_with_filters(
+    category,
+    user_id,
+    status_filter=None,
+    existence_filter=None,
+    reread_filter=None,
+    date_from=None,
+    date_to=None,
+    limit=None,
+    offset=0,
+):
+    query, params, order_clause = _build_books_filter_clause(
+        category,
+        user_id,
+        status_filter,
+        existence_filter,
+        reread_filter,
+        date_from,
+        date_to,
+    )
     sql = f"SELECT * {query}{order_clause}"
     if limit is not None:
         sql += " LIMIT ? OFFSET ?"
@@ -426,14 +470,46 @@ def query_books_with_filters(category, user_id, status_filter=None, existence_fi
     return db.execute(sql, *params)
 
 
-def count_books_with_filters(category, user_id, status_filter=None, existence_filter=None, reread_filter=None):
-    query, params, _ = _build_books_filter_clause(category, user_id, status_filter, existence_filter, reread_filter)
+def count_books_with_filters(
+    category,
+    user_id,
+    status_filter=None,
+    existence_filter=None,
+    reread_filter=None,
+    date_from=None,
+    date_to=None,
+):
+    query, params, _ = _build_books_filter_clause(
+        category,
+        user_id,
+        status_filter,
+        existence_filter,
+        reread_filter,
+        date_from,
+        date_to,
+    )
     rows = db.execute(f"SELECT COUNT(*) AS count {query}", *params)
     return rows[0]["count"] if rows else 0
 
 
-def count_books_missing_genres_with_filters(category, user_id, status_filter=None, existence_filter=None, reread_filter=None):
-    query, params, _ = _build_books_filter_clause(category, user_id, status_filter, existence_filter, reread_filter)
+def count_books_missing_genres_with_filters(
+    category,
+    user_id,
+    status_filter=None,
+    existence_filter=None,
+    reread_filter=None,
+    date_from=None,
+    date_to=None,
+):
+    query, params, _ = _build_books_filter_clause(
+        category,
+        user_id,
+        status_filter,
+        existence_filter,
+        reread_filter,
+        date_from,
+        date_to,
+    )
     query += " AND (genres IS NULL OR genres = '' OR genres = 'None')"
     rows = db.execute(f"SELECT COUNT(*) AS count {query}", *params)
     return rows[0]["count"] if rows else 0
@@ -3641,15 +3717,27 @@ def choose():
     status_filter = (request.form.get("status_filter") or "").strip() if request.method == "POST" else ""
     existence_filter = (request.form.get("filter") or "").strip() if request.method == "POST" else ""
     reread_filter = (request.form.get("reread_filter") or "").strip() if request.method == "POST" else ""
+    date_from = _normalize_date_filter(request.form.get("date_from")) if request.method == "POST" else ""
+    date_to = _normalize_date_filter(request.form.get("date_to")) if request.method == "POST" else ""
 
-    if not (status_filter or existence_filter or reread_filter):
+    if not (status_filter or existence_filter or reread_filter or date_from or date_to):
         stored = session.get("filters", {}).get(page, {})
         status_filter = stored.get("status_filter", "")
         existence_filter = stored.get("existence_filter", "")
         reread_filter = stored.get("reread_filter", "")
+        date_from = stored.get("date_from", "")
+        date_to = stored.get("date_to", "")
 
-    if status_filter or existence_filter or reread_filter:
-        candidates = query_books_with_filters(page, session["user_id"], status_filter, existence_filter, reread_filter)
+    if status_filter or existence_filter or reread_filter or date_from or date_to:
+        candidates = query_books_with_filters(
+            page,
+            session["user_id"],
+            status_filter,
+            existence_filter,
+            reread_filter,
+            date_from,
+            date_to,
+        )
     else:
         candidates = db.execute(f"SELECT * FROM {page} WHERE user_id = ?", session["user_id"])
 
@@ -3685,33 +3773,59 @@ def render_category_page(category, template_name):
             status_filter = ""
             existence_filter = ""
             reread_filter = ""
+            date_from = ""
+            date_to = ""
         else:
             # Merge new filters with saved ones so selections stack
             new_status = request.form.get("status_filter")
             new_exist = request.form.get("filter")
             new_reread = request.form.get("reread_filter")
+            new_date_from = request.form.get("date_from")
+            new_date_to = request.form.get("date_to")
 
             status_filter = (new_status.strip() if new_status is not None else saved_filters.get("status_filter", ""))
             existence_filter = (new_exist.strip() if new_exist is not None else saved_filters.get("existence_filter", ""))
             reread_filter = (new_reread.strip() if new_reread is not None else saved_filters.get("reread_filter", ""))
+            date_from = _normalize_date_filter(new_date_from if new_date_from is not None else saved_filters.get("date_from", ""))
+            date_to = _normalize_date_filter(new_date_to if new_date_to is not None else saved_filters.get("date_to", ""))
 
             session.setdefault("filters", {})[category] = {
                 "status_filter": status_filter,
                 "existence_filter": existence_filter,
                 "reread_filter": reread_filter,
+                "date_from": date_from,
+                "date_to": date_to,
             }
         page_num = 1
     else:
         status_filter = saved_filters.get("status_filter", "")
         existence_filter = saved_filters.get("existence_filter", "")
         reread_filter = saved_filters.get("reread_filter", "")
+        date_from = saved_filters.get("date_from", "")
+        date_to = saved_filters.get("date_to", "")
         try:
             page_num = max(1, int(request.args.get("page_num", 1)))
         except (TypeError, ValueError):
             page_num = 1
 
-    total_books = count_books_with_filters(category, session["user_id"], status_filter, existence_filter, reread_filter)
-    bulk_suggest_count = count_books_missing_genres_with_filters(category, session["user_id"])
+    total_books = count_books_with_filters(
+        category,
+        session["user_id"],
+        status_filter,
+        existence_filter,
+        reread_filter,
+        date_from,
+        date_to,
+    )
+    bulk_suggest_count = count_books_missing_genres_with_filters(
+        category,
+        session["user_id"],
+        status_filter,
+        existence_filter,
+        reread_filter,
+        date_from,
+        date_to,
+    )
     # The count itself is loaded async via /api/count_finish_date_candidates;
     # computing it inline does 5 HTTP fetches (~3MB) and blocks the page render.
     finish_date_feature_available = (
@@ -3733,6 +3847,8 @@ def render_category_page(category, template_name):
         status_filter,
         existence_filter,
         reread_filter,
+        date_from,
+        date_to,
         limit=BOOK_PAGE_SIZE,
         offset=offset,
     )
@@ -3747,6 +3863,8 @@ def render_category_page(category, template_name):
         selected_status=status_filter,
         selected_existence=existence_filter,
         selected_reread=reread_filter,
+        selected_date_from=date_from,
+        selected_date_to=date_to,
         status_options=get_status_options(category, session["user_id"]),
         reread_options=get_reread_options(session["user_id"]) if category == "completed" else [],
         page_num=page_num,
@@ -5277,16 +5395,22 @@ def api_bulk_suggest_genres(category):
             except (TypeError, ValueError):
                 continue
 
-    sql = (
-        f"SELECT id, book FROM {category} "
-        "WHERE user_id = ? AND (genres IS NULL OR genres = '' OR genres = 'None')"
+    saved_filters = session.get("filters", {}).get(category, {})
+    query, params, order_clause = _build_books_filter_clause(
+        category,
+        session["user_id"],
+        saved_filters.get("status_filter", ""),
+        saved_filters.get("existence_filter", ""),
+        saved_filters.get("reread_filter", ""),
+        saved_filters.get("date_from", ""),
+        saved_filters.get("date_to", ""),
     )
-    params = [session["user_id"]]
+    sql = f"SELECT id, book {query} AND (genres IS NULL OR genres = '' OR genres = 'None')"
     if exclude_ids:
         placeholders = ",".join("?" * len(exclude_ids))
         sql += f" AND id NOT IN ({placeholders})"
         params.extend(exclude_ids)
-    sql += " ORDER BY date DESC, id DESC LIMIT ?"
+    sql += f"{order_clause} LIMIT ?"
     params.append(batch_size)
     rows = db.execute(sql, *params)
 
@@ -5354,7 +5478,15 @@ def api_bulk_suggest_genres(category):
         "skipped": len(skipped_ids),
         "skipped_ids": skipped_ids,
         "books": updated_books,
-        "remaining": count_books_missing_genres_with_filters(category, session["user_id"]),
+        "remaining": count_books_missing_genres_with_filters(
+            category,
+            session["user_id"],
+            saved_filters.get("status_filter", ""),
+            saved_filters.get("existence_filter", ""),
+            saved_filters.get("reread_filter", ""),
+            saved_filters.get("date_from", ""),
+            saved_filters.get("date_to", ""),
+        ),
     }
 
 
